@@ -2,6 +2,7 @@ import numpy as np
 
 from data_source import PhoneDataSource, RobotDataSource, CameraDataSource
 from kalman import ExtendedKalmanFilter
+from kalman_library import ExtendedKalmanFilterLib
 from robotmodel import RobotModel
 import matplotlib.pyplot as plt
 
@@ -40,36 +41,35 @@ class Localization:
             else:
                 time_delta = timestamp - previous_timestamp
                 step_data = self.robot_model.get_step_data(timestamp, state, time_delta)
-                try:
-                    state, covariance = self.filter.predict_update(step_data.transition_function,
-                                                                   step_data.observations_function,
-                                                                   step_data.control,
-                                                                   step_data.observations,
-                                                                   step_data.process_covariance,
-                                                                   step_data.observations_covariance)
 
-                    model_state = self.robot_model.transition_function(model_state, step_data.control, time_delta)
-                    sensors_bag = self.robot_model.add_to_bag(step_data, sensors_bag)
+                state, covariance = self.filter.predict_update(step_data.transition_function,
+                                                               step_data.observations_function,
+                                                               step_data.control,
+                                                               step_data.observations,
+                                                               step_data.process_covariance,
+                                                               step_data.observations_covariance)
 
-                    sensors_bag.add_parameter('x', 'model', model_state[0])
-                    sensors_bag.add_parameter('y', 'model', model_state[1])
-                    sensors_bag.add_parameter('angle', 'model', model_state[2])
+                model_state = self.robot_model.transition_function(model_state, step_data.control, time_delta)
+                sensors_bag = self.robot_model.add_to_bag(step_data, sensors_bag)
 
-                    sensors_bag.add_parameter('x', 'kalman', state[0])
-                    sensors_bag.add_parameter('y', 'kalman', state[1])
-                    sensors_bag.add_parameter('angle', 'kalman', state[2])
+                sensors_bag.add_parameter('x', 'model', model_state[0])
+                sensors_bag.add_parameter('y', 'model', model_state[1])
+                sensors_bag.add_parameter('angle', 'model', model_state[2])
 
-                except Exception as e:
-                    print(e)
+                sensors_bag.add_parameter('x', 'kalman', state[0])
+                sensors_bag.add_parameter('y', 'kalman', state[1])
+                sensors_bag.add_parameter('angle', 'kalman', state[2])
+
 
             previous_timestamp = timestamp
 
         return sensors_bag
 
 
-t = Localization(ExtendedKalmanFilter)
+t = Localization(ExtendedKalmanFilterLib)
 data = t.simulate()
 vis = Visualizer(data)
 #vis.plot_xy(['model', 'camera', 'kalman'])
 vis.plot(['y'], ['camera', 'model', 'kalman', 'sonar'])
+# vis.plot(['angle'], ['gyroscope', 'model', 'compass', 'kalman'])
 vis.show()

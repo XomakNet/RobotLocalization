@@ -7,7 +7,7 @@ __author__ = 'Xomak'
 
 
 class ExtendedKalmanFilter:
-    def __init__(self, state_dimension: int, observations_dimension: int, ):
+    def __init__(self, state_dimension: int, observations_dimension: int):
         self.observations_dimension = observations_dimension
         self.state_predicted = np.zeros((state_dimension,))
         self.state_dimension = state_dimension
@@ -44,7 +44,8 @@ class ExtendedKalmanFilter:
                               + observations_covariance
         kalman_gain = self.covariance_predicted.dot(observations_matrix.T).dot(residual_covariance.I)
         self.state_predicted += np.squeeze(np.asarray(kalman_gain.dot(measurement_residual)))
-        self.covariance_predicted = (np.identity(kalman_gain.shape[0]) - kalman_gain.dot(observations_matrix)).dot(self.covariance_predicted)
+        self.covariance_predicted = (np.identity(kalman_gain.shape[0]) - kalman_gain.dot(observations_matrix))\
+            .dot(self.covariance_predicted)
 
     def predict_update(self,
                        transition_function: Callable[[np.array, np.array], np.array],

@@ -133,7 +133,7 @@ class RobotModel:
 
     @property
     def process_covariance(self):
-        return np.matrix("25 0 0; 0 25 0; 0 0 4")
+        return np.matrix("0.25 0 0; 0 0.25 0; 0 0 0.25")
 
     def observations_covariance(self, state: np.array, observations: np.array):
         sonar_degree = 75
@@ -145,9 +145,10 @@ class RobotModel:
         covariance[3, 3] = 25
 
         if (state[2] < sonar_degree or state[2] > (360-sonar_degree)) and observations[4] < 100 and observations[4] > 13:
-            covariance[4, 4] = 4
+            covariance[4, 4] = 2
         else:
-            covariance[4, 4] = 100000
+            covariance[4, 4] = 10000000
+
         return covariance
 
     @property
