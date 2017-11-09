@@ -5,6 +5,9 @@ from kalman import ExtendedKalmanFilter
 from robotmodel import RobotModel
 import matplotlib.pyplot as plt
 
+from sensors_bag import SensorsBag
+from visualizer import Visualizer
+
 __author__ = 'Xomak'
 
 
@@ -24,69 +27,49 @@ class Localization:
         state = None
         model_state = None
         previous_timestamp = None
-        x_p = []
-        y_p = []
 
-        x_c = []
-        y_c = []
-
-        x = []
-        y = []
-
-        a_p = []
-        a_g = []
-        a_c = []
-        a = []
-
-        sonar = []
+        sensors_bag = SensorsBag()
 
         for timestamp in self.robot_model.main_timeline:
             if previous_timestamp is None:
                 state = self.robot_model.initial_state
                 model_state = self.robot_model.initial_state
                 initial_covariance = self.robot_model.initial_covariance
-                self.filter = self.filter_class(state, initial_covariance)
+                self.filter = self.filter_class(state.shape[0], self.robot_model.observations_dimension)
+                self.filter.set_initial(state, initial_covariance)
             else:
                 time_delta = timestamp - previous_timestamp
-                observations, control = self.robot_model.get_observations_and_control_for(timestamp)
-                observations_covariance = self.robot_model.observations_covariance(state, observations)
-                process_covariance = self.robot_model.process_covariance
-                transition_function = self.robot_model.get_transition_function_for_delta_time(time_delta)
-                observations_function = self.robot_model.observations_function
+                step_data = self.robot_model.get_step_data(timestamp, state, time_delta)
                 try:
-                    state, covariance = self.filter.get_new_state(transition_function, observations_function, control,
-                                                                  observations,
-                                                                  process_covariance, observations_covariance)
+                    state, covariance = self.filter.predict_update(step_data.transition_function,
+                                                                   step_data.observations_function,
+                                                                   step_data.control,
+                                                                   step_data.observations,
+                                                                   step_data.process_covariance,
+                                                                   step_data.observations_covariance)
 
-                    model_state = self.robot_model.transition_function(model_state, control, time_delta)
-                    x_p.append(model_state[0])
-                    y_p.append(model_state[1])
-                    x_c.append(observations[0])
-                    y_c.append(observations[1])
-                    x.append(state[0])
-                    y.append(state[1])
+                    model_state = self.robot_model.transition_function(model_state, step_data.control, time_delta)
+                    sensors_bag = self.robot_model.add_to_bag(step_data, sensors_bag)
 
-                    sonar.append(observations[4])
+                    sensors_bag.add_parameter('x', 'model', model_state[0])
+                    sensors_bag.add_parameter('y', 'model', model_state[1])
+                    sensors_bag.add_parameter('angle', 'model', model_state[2])
 
-                    a_p.append(RobotModel.normalize_angle(model_state[2]))
-                    a_c.append(observations[2])
-                    a_g.append(RobotModel.normalize_angle(observations[3]))
-                    a.append(state[2])
-                except:
-                    print("exception")
+                    sensors_bag.add_parameter('x', 'kalman', state[0])
+                    sensors_bag.add_parameter('y', 'kalman', state[1])
+                    sensors_bag.add_parameter('angle', 'kalman', state[2])
+
+                except Exception as e:
+                    print(e)
 
             previous_timestamp = timestamp
 
-        plt.plot(x_p, y_p, 'ro')
-        plt.plot(x_c, y_c, 'go')
-        plt.plot(x, y, 'yo')
-        # plt.plot(a_c)
-        # plt.plot(a_g)
-        # plt.plot(sonar)
-        # plt.plot(a_p)
-        # plt.plot(a)
-        plt.show()
+        return sensors_bag
 
 
 t = Localization(ExtendedKalmanFilter)
-t.simulate()
+data = t.simulate()
+vis = Visualizer(data)
+#vis.plot_xy(['model', 'camera', 'kalman'])
+vis.plot(['y'], ['camera', 'model', 'kalman', 'sonar'])
+vis.show()

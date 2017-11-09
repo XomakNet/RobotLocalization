@@ -18,14 +18,15 @@ class ExtendedKalmanFilterTest(unittest.TestCase):
         def observations_function(state: np.array):
             return state
 
-        filter = ExtendedKalmanFilter(initial_state, np.array([0]))
+        filter = ExtendedKalmanFilter(1, 1)
+        filter.set_initial(initial_state, np.matrix('0', dtype='float64'))
 
         control_input = np.array([1], dtype='float64')
         observed = np.array([1], dtype='float64')
 
-        actual_state, actual_covariance_estimate = filter.get_new_state(transition_function, observations_function,
-                                                                        control_input, observed, covariance_estimate,
-                                                                        covariance_estimate)
+        actual_state, actual_covariance_estimate = filter.predict_update(transition_function, observations_function,
+                                                                         control_input, observed, covariance_estimate,
+                                                                         covariance_estimate)
 
         self.assertAlmostEqual((actual_covariance_estimate - np.matrix([0.25]))[0, 0], 0)
         self.assertEqual(actual_state, np.array([1]))
@@ -40,14 +41,15 @@ class ExtendedKalmanFilterTest(unittest.TestCase):
         def observations_function(state: np.array):
             return state
 
-        filter = ExtendedKalmanFilter(initial_state, np.array([0, 0]))
+        filter = ExtendedKalmanFilter(2, 2)
+        filter.set_initial(initial_state, np.matrix('0, 0; 0, 0', dtype='float64'))
 
         control_input = np.array([1, 1], dtype='float64')
         observed = np.array([1, 1], dtype='float64')
 
-        actual_state, actual_covariance_estimate = filter.get_new_state(transition_function, observations_function,
-                                                                        control_input, observed, covariance_estimate,
-                                                                        covariance_estimate)
+        actual_state, actual_covariance_estimate = filter.predict_update(transition_function, observations_function,
+                                                                         control_input, observed, covariance_estimate,
+                                                                         covariance_estimate)
 
         required_covariance = np.matrix("0.25 0; 0 0.25")
         self.assertTrue(np.allclose(actual_covariance_estimate, required_covariance))
@@ -81,11 +83,12 @@ class ExtendedKalmanFilterTest(unittest.TestCase):
             [2.68852441, 2.25424821]
         ]
 
-        filter = ExtendedKalmanFilter(initial_state, initial_covariance)
+        filter = ExtendedKalmanFilter(2, 1)
+        filter.set_initial(initial_state, initial_covariance)
         for i in range(0, 4):
             observed = np.array([observations[i]])
-            state, covariance = filter.get_new_state(transition_function, observation_function, np.array([0]),
-                                                     observed, process_covariance, observation_covariance)
+            state, covariance = filter.predict_update(transition_function, observation_function, np.array([0]),
+                                                      observed, process_covariance, observation_covariance)
 
             required_state = np.array(expected_values[i])
             print(required_state, state)

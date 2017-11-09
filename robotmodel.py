@@ -1,9 +1,11 @@
+from collections import namedtuple
 from typing import Tuple
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from data_source import PhoneDataSource, RobotDataSource, CameraDataSource
+from sensors_bag import SensorsBag
 
 __author__ = 'Xomak'
 
@@ -14,6 +16,14 @@ class RobotModel:
     RPS_TO_RADIANS = 2 * np.pi
     WHEEL_RADIUS = 2.75
     WHEEL_DISTANCE = 14.5 / 2
+    DISTANCE_TO_WALL = 13
+
+    StepData = namedtuple('StepData', ('observations',
+                                       'control',
+                                       'observations_covariance',
+                                       'process_covariance',
+                                       'transition_function',
+                                       'observations_function'))
 
     def __init__(self, robot_data: RobotDataSource, phone_data: PhoneDataSource, camera_data: CameraDataSource):
 
@@ -31,6 +41,27 @@ class RobotModel:
     @property
     def main_timeline(self):
         return self.robot_data.timeline
+
+    def get_step_data(self, timestamp: float, state: np.array, time_delta: float) -> StepData:
+        observations, control = self.get_observations_and_control_for(timestamp)
+        process_covariance = self.process_covariance
+        transition_function = self.get_transition_function_for_delta_time(time_delta)
+        observations_function = self.observations_function
+        observations_covariance = self.observations_covariance(state, observations)
+        result = RobotModel.StepData(observations, control, observations_covariance,
+                                     process_covariance, transition_function, observations_function)
+        return result
+
+    def add_to_bag(self, step_data: 'RobotModel.StepData', sensor_bag: SensorsBag):
+        sensor_bag.add_parameter('x', 'camera', step_data.observations[0])
+        sensor_bag.add_parameter('y', 'camera', step_data.observations[1])
+        sensor_bag.add_parameter('angle', 'compass', step_data.observations[2])
+        sensor_bag.add_parameter('angle', 'gyroscope', step_data.observations[3])
+        sensor_bag.add_parameter('sonar_distance', 'sonar', step_data.observations[4])
+        distance = step_data.observations[4]
+        angle = np.deg2rad(RobotModel.normalize_angle(step_data.observations[3]))
+        sensor_bag.add_parameter('y', 'sonar', RobotModel.get_y_from_measured(distance, angle))
+        return sensor_bag
 
     def get_observations_and_control_for(self, timestamp: float) -> Tuple[np.array, np.array]:
 
@@ -86,11 +117,11 @@ class RobotModel:
 
     @staticmethod
     def get_y_from_measured(distance: float, angle_radians: float):
-        return np.cos(angle_radians) * distance
+        return np.cos(angle_radians) * distance - RobotModel.DISTANCE_TO_WALL
 
     @staticmethod
     def get_measured_from_y_and_angle(y: float, angle_radians: float):
-        return y / np.cos(angle_radians)
+        return y / np.cos(angle_radians) + RobotModel.DISTANCE_TO_WALL
 
     @property
     def initial_covariance(self):
@@ -102,7 +133,7 @@ class RobotModel:
 
     @property
     def process_covariance(self):
-        return np.matrix("0.5 0 0; 0 0.5 0; 0 0 0.5")
+        return np.matrix("25 0 0; 0 25 0; 0 0 4")
 
     def observations_covariance(self, state: np.array, observations: np.array):
         sonar_degree = 75
@@ -119,6 +150,10 @@ class RobotModel:
             covariance[4, 4] = 100000
         return covariance
 
+    @property
+    def observations_dimension(self):
+        return 5
+
     def observations_function(self, state: np.array):
         # Observations: Camera X, Camera Y, Compass angle, Gyroscope angle, Sonar distance
         observed = np.ndarray((5,))
@@ -126,5 +161,5 @@ class RobotModel:
         observed[1] = state[1]  # camera y = state.y
         observed[2] = state[2]  # Compass angle = theta
         observed[3] = state[2]  # Gyroscope angle = theta
-        observed[4] = RobotModel.get_measured_from_y_and_angle(state[1], np.deg2rad(state[2])) + 13  # Sonar measured, calc from y and theta
+        observed[4] = RobotModel.get_measured_from_y_and_angle(state[1], np.deg2rad(state[2]))  # Sonar measured, calc from y and theta
         return observed
