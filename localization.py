@@ -1,10 +1,7 @@
-import numpy as np
 
 from data_source import PhoneDataSource, RobotDataSource, CameraDataSource
 from kalman import ExtendedKalmanFilter
-from kalman_library import ExtendedKalmanFilterLib
 from robotmodel import RobotModel
-import matplotlib.pyplot as plt
 
 from sensors_bag import SensorsBag
 from visualizer import Visualizer
@@ -22,7 +19,7 @@ class Localization:
 
         print(data_robot.timeline[-1])
 
-        self.robot_model = RobotModel(data_robot, data_phone, data_camera)
+        self.robot_model = RobotModel(data_robot, data_camera)
 
     def simulate(self):
         state = None
@@ -42,6 +39,7 @@ class Localization:
                 time_delta = timestamp - previous_timestamp
                 step_data = self.robot_model.get_step_data(timestamp, state, time_delta)
 
+                predicted_state = self.robot_model.transition_function(state, step_data.control, time_delta)
                 state, covariance = self.filter.predict_update(step_data.transition_function,
                                                                step_data.observations_function,
                                                                step_data.control,
@@ -51,6 +49,10 @@ class Localization:
 
                 model_state = self.robot_model.transition_function(model_state, step_data.control, time_delta)
                 sensors_bag = self.robot_model.add_to_bag(step_data, sensors_bag)
+
+                sensors_bag.add_parameter('x', 'predicted', predicted_state[0])
+                sensors_bag.add_parameter('y', 'predicted', predicted_state[1])
+                sensors_bag.add_parameter('angle', 'predicted', predicted_state[2])
 
                 sensors_bag.add_parameter('x', 'model', model_state[0])
                 sensors_bag.add_parameter('y', 'model', model_state[1])
@@ -66,7 +68,7 @@ class Localization:
         return sensors_bag
 
 
-t = Localization(ExtendedKalmanFilterLib)
+t = Localization(ExtendedKalmanFilter)
 data = t.simulate()
 vis = Visualizer(data)
 #vis.plot_xy(['model', 'camera', 'kalman'])
