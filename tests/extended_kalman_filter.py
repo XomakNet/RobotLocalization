@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from kalman import ExtendedKalmanFilter
+from core.filters.kalman import ExtendedKalmanFilter
 
 __author__ = 'Xomak'
 
@@ -91,7 +91,6 @@ class ExtendedKalmanFilterTest(unittest.TestCase):
                                                       observed, process_covariance, observation_covariance)
 
             required_state = np.array(expected_values[i])
-            print(required_state, state)
             self.assertTrue(np.allclose(required_state, state))
 
             # self.assertTrue(False)

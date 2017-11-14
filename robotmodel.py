@@ -3,8 +3,8 @@ from typing import Tuple
 
 import numpy as np
 
-from data_source import PhoneDataSource, RobotDataSource, CameraDataSource
-from sensors_bag import SensorsBag
+from core.data_source import PhoneDataSource, RobotDataSource, CameraDataSource
+from core.sensors_bag import SensorsBag
 
 __author__ = 'Xomak'
 
@@ -21,6 +21,7 @@ class RobotModel:
                                        'control',
                                        'observations_covariance',
                                        'process_covariance',
+                                       'control_stds',
                                        'transition_function',
                                        'observations_function'))
 
@@ -57,7 +58,7 @@ class RobotModel:
         observations_function = self.observations_function
         observations_covariance = self.observations_covariance(observations)
         result = RobotModel.StepData(observations, control, observations_covariance,
-                                     process_covariance, transition_function, observations_function)
+                                     process_covariance, self.control_stds, transition_function, observations_function)
         return result
 
     def add_to_bag(self, step_data: 'RobotModel.StepData', sensor_bag: SensorsBag):
@@ -135,6 +136,11 @@ class RobotModel:
         return matrix
 
     @property
+    def initial_stds(self):
+        matrix = np.array([self.initial_dispersions.x, self.initial_dispersions.y, self.initial_dispersions.theta])
+        return matrix
+
+    @property
     def initial_state(self):
         return np.array([0, 0, 0])
 
@@ -160,6 +166,10 @@ class RobotModel:
         observed[3] = self.get_measured_from_y_and_angle(state[1],
                                                          np.deg2rad(state[2]))  # Sonar measured, calc from y and theta
         return observed
+
+    @property
+    def control_stds(self):
+        return np.array([25, 25])
 
     def observations_covariance(self, observations: np.array):
         # Without compass

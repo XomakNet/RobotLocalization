@@ -2,10 +2,12 @@ from typing import List, Callable, Tuple
 
 import numpy as np
 
+from core.filters import DataFilter
+
 __author__ = 'Xomak'
 
 
-class UnscentedKalmanFilter:
+class UnscentedKalmanFilter(DataFilter):
     def __init__(self, state_dimension: int, observations_dimension: int):
         self.observations_dimension = observations_dimension
         self.state_predicted = np.zeros((state_dimension,))
@@ -58,7 +60,6 @@ class UnscentedKalmanFilter:
         self.covariance_predicted = initial_covariance_estimate
 
     def _get_sigma_points(self, mean: np.array, covariance: np.matrix) -> List[np.array]:
-        print(covariance)
         m = np.linalg.cholesky(self.c * covariance)
         points = [mean]
 

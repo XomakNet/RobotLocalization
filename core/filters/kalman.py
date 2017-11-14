@@ -3,10 +3,12 @@ from typing import Callable, Tuple
 import numdifftools as nd
 import numpy as np
 
+from core.filters import DataFilter
+
 __author__ = 'Xomak'
 
 
-class ExtendedKalmanFilter:
+class ExtendedKalmanFilter(DataFilter):
     def __init__(self, state_dimension: int, observations_dimension: int):
         self.observations_dimension = observations_dimension
         self.state_predicted = np.zeros((state_dimension,))

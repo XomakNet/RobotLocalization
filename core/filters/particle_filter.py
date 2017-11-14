@@ -6,10 +6,12 @@ import scipy.stats
 
 from filterpy.monte_carlo import stratified_resample
 
+from core.filters import DataFilter
+
 __author__ = 'Xomak'
 
 
-class ParticleFilter:
+class ParticleFilter(DataFilter):
 
     def __init__(self, state_dimension: int, observations_dimension: int, particles_number: int = 2000):
         self.observations_dimension = observations_dimension
@@ -19,10 +21,9 @@ class ParticleFilter:
         self.particles_number = particles_number
         self.state_predicted = None
 
-    def set_initial(self, initial_state: np.array, initial_covariance: np.matrix):
+    def set_initial(self, initial_state: np.array, initial_stds: np.array):
         self.state_predicted = initial_state
-        stds = np.array([initial_covariance[0, 0], initial_covariance[1, 1], initial_covariance[2, 2]])
-        self.init_particles(initial_state, np.array(stds), self.particles_number)
+        self.init_particles(initial_state, initial_stds, self.particles_number)
 
     def init_particles(self, initial_state, initial_stds, particles_number):
         self.particles = [initial_state + np.random.randn(initial_state.shape[0]) * initial_stds
