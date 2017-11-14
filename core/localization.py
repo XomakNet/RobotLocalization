@@ -21,7 +21,7 @@ class Localization:
         raise ValueError()
 
     def init_model(self):
-        data_phone = PhoneDataSource('datasets/1/data_phone_good_1.csv', 179, 457)
+        data_phone = PhoneDataSource('datasets/1/log_phone.csv', 179, 457)
         data_camera = CameraDataSource('datasets/1/log_camera.csv')
         data_robot = RobotDataSource('datasets/1/log_robot.csv')
         self.robot_model = RobotModel(data_robot, data_camera)

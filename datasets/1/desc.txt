@@ -1,0 +1,4 @@
+top_left = Point(116, 221)
+bottom_right = Point(1783, 680)
+virtual_size = TerrainSize(bottom_right.x - top_left.x, bottom_right.y - top_left.y)  # In pixels
+physical_size = TerrainSize(125, 39)  # In centimeters
